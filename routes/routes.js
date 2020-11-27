@@ -3,7 +3,24 @@ const Xbox = require("xbox-on");
 const { joinNetwork, getZerotierIp } = require("../services/zerotier");
 const cmd = require("node-cmd");
 const router = new Router();
-const { errors, strErrors } = require("../services/utils/errors");
+const { errors, strErrors, status } = require("../services/utils/errors");
+
+
+router.get('/', async (req, res, next) => {
+  try {
+    res.json({
+      success: true,
+      strStatus: "AVAILABLE",
+      messageText: {
+        status: 200,
+        messageText: status["AVAILABLE"]
+      }
+    })
+  } catch (err) {
+    console.error(err)
+    next(err)
+  }
+})
 
 //power-on xbox
 router.post("/xbox-on", [], (req, res, next) => {
@@ -20,17 +37,18 @@ router.post("/xbox-on", [], (req, res, next) => {
     xbox.powerOn(options, (err) => {
       if (!err) {
         return res.json({
-          successs: true,
+          success: true,
+          strStatus: "SUCCESS",
           messages: {
-            status: 400,
-            messageText: "Xbox power on success!",
+            status: 200,
+            messageText: status['SUCCESS']
           },
         });
       }
 
       res.status(400).json({
-        successs: false,
-        strError: 'FAILED_TO_POWER_ON',
+        success: false,
+        strStatus: 'FAILED_TO_POWER_ON',
         messages: {
           status: 400,
           messageText: errors['FAILED_TO_POWER_ON'],
@@ -52,7 +70,7 @@ router.post("/join", [], async (req, res, next) => {
     if (result in strErrors) {
       return res.status(400).json({
         success: false,
-        strError: result,
+        strStatus: result,
         messages: {
           status: 400,
           messageText: errors[result],
@@ -63,9 +81,9 @@ router.post("/join", [], async (req, res, next) => {
     if (result.trim() !== "200 join OK") {
       res.status(400).json({
         success: false,
-        strError: "FAILED_TO_JOIN",
+        strStatus: "FAILED_TO_JOIN",
         messages: {
-          status: 200,
+          status: 400,
           messageText: errors["FAILED_TO_JOIN"],
         },
       });
@@ -76,9 +94,10 @@ router.post("/join", [], async (req, res, next) => {
     res.json({
       success: true,
       rasp_ip: zerotierIp,
+      strStatus: 'SUCCESS',
       messages: {
         status: 200,
-        messageText: "Successfully joined!",
+        messageText: status['SUCCESS'],
       },
     });
   } catch (err) {
@@ -99,10 +118,11 @@ router.post("/iptable-allow", [], (req, res, next) => {
 
     if (!err) {
       res.json({
-        successs: true,
+        success: true,
+        strStatus: 'SUCCESS',
         messages: {
           status: 200,
-          messageText: "Iptable was configured!",
+          messageText: status['SUCCESS'],
         },
       });
     }
@@ -121,7 +141,7 @@ router.post("/play", [], async (req, res, next) => {
     if (result in strErrors) {
       return res.status(400).json({
         success: false,
-        strError: result,
+        strStatus: result,
         messages: {
           status: 400,
           messageText: errors[result],
@@ -132,7 +152,7 @@ router.post("/play", [], async (req, res, next) => {
     if (result.trim() !== "200 join OK") {
       res.status(400).json({
         success: false,
-        strError: "FAILED_TO_JOIN",
+        strStatus: "FAILED_TO_JOIN",
         messages: {
           status: 400,
           messageText: errors["FAILED_TO_JOIN"],
@@ -157,7 +177,7 @@ router.post("/play", [], async (req, res, next) => {
     xbox.powerOn(options, (err) => {
       if (!err) {
         return res.json({
-          successs: true,
+          success: true,
           rasp_ip: zerotierIp,
           strStatus: 'READY_TO_PLAY',
           messages: {
@@ -168,7 +188,7 @@ router.post("/play", [], async (req, res, next) => {
       }
 
       res.status(400).json({
-        successs: false,
+        success: false,
         strError: 'FAILED_TO_POWER_ON',
         messages: {
           status: 400,

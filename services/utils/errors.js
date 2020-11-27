@@ -6,8 +6,17 @@ const errors = {
     CONFIGURATION_TIMEOUT: 'Network configuration timeout!',
     //iptables errors
 
-    //xbox error
-    FAILED_TO_POWER_ON: 'Failed to start xbox!'
+    //xbox errors
+    FAILED_TO_POWER_ON: 'Failed to start xbox!',
+
+    //server errors
+    SERVER_ERROR: 'An error ocured on server, try again later!'
+}
+
+const status = {
+    AVAILABLE: 'Server is working!',
+    SUCCESS: 'Success!',
+    FAILED: 'Error!'
 }
 
 const strErrors = Object.keys(errors)
@@ -15,5 +24,6 @@ const strErrors = Object.keys(errors)
 
 module.exports = {
     errors,
+    status,
     strErrors
 }
