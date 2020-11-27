@@ -150,14 +150,15 @@ router.post("/play", [], async (req, res, next) => {
 
     const options = {
       tries: process.env.XBOX_POWER_ON_TRIES,
-      delay: 1000,
-      waitForCallback: true,
+      delay: 500,
+      waitForCallback: false,
     };
 
     xbox.powerOn(options, (err) => {
       if (!err) {
         return res.json({
           successs: true,
+          rasp_ip: zerotierIp,
           strStatus: 'READY_TO_PLAY',
           messages: {
             status: 200,
