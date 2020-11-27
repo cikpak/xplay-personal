@@ -18,7 +18,7 @@ router.post("/xbox-on", [], (req, res, next) => {
     };
 
     xbox.powerOn(options, (err) => {
-      if (err) {
+      if (!err) {
         return res.json({
           successs: true,
           messages: {
@@ -115,6 +115,66 @@ router.post("/iptable-allow", [], (req, res, next) => {
 //play
 router.post("/play", [], async (req, res, next) => {
   try {
+    const { zerotier_network_id, xbox_ip, src_ip, xbox_id } = req.body;
+    const result = await joinNetwork(zerotier_network_id);
+
+    if (result in strErrors) {
+      return res.status(400).json({
+        success: false,
+        strError: result,
+        messages: {
+          status: 400,
+          messageText: errors[result],
+        },
+      });
+    }
+
+    if (result.trim() !== "200 join OK") {
+      res.status(400).json({
+        success: false,
+        strError: "FAILED_TO_JOIN",
+        messages: {
+          status: 400,
+          messageText: errors["FAILED_TO_JOIN"],
+        },
+      });
+    }
+
+    const zerotierIp = await getZerotierIp();
+
+    const command = `sudo bash ./forward.sh -s ${src_ip} -x ${xbox_ip}`;
+    const { err, data } = cmd.runSync(command);
+
+
+    const xbox = new Xbox(xbox_ip, xbox_id);
+
+    const options = {
+      tries: process.env.XBOX_POWER_ON_TRIES,
+      delay: 1000,
+      waitForCallback: true,
+    };
+
+    xbox.powerOn(options, (err) => {
+      if (!err) {
+        return res.json({
+          successs: true,
+          strStatus: 'READY_TO_PLAY',
+          messages: {
+            status: 200,
+            messageText: "Ready to play!",
+          },
+        });
+      }
+
+      res.status(400).json({
+        successs: false,
+        strError: 'FAILED_TO_POWER_ON',
+        messages: {
+          status: 400,
+          messageText: errors['FAILED_TO_POWER_ON'],
+        },
+      });
+    });
   } catch (err) {
     console.error(err);
     next(err);
