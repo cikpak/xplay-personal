@@ -1,6 +1,8 @@
 # exit on any error
 set -e
 
+cd xplay-personal
+
 echo "---Instaling Zerotier-One---"
 # install zerotier
 curl -s https://install.zerotier.com | bash 
@@ -21,14 +23,16 @@ Description=XPlay-personal raspberry server
 After=network.target
 
 [Service]
+Environment="PORT=8000"
+Environment="WAIT_CONFIGURATION=10"
+Environment="XBOX_POWER_ON_TRIES=10"
 Type=simple
 User=pi
 ExecStart=/usr/bin/node /home/pi/xplay-personal/server.js
 Restart=on-failure
 
 [Install]
-WantedBy=multi-user.target
-" > /etc/systemd/system/xplay-server.service
+WantedBy=multi-user.target" > /etc/systemd/system/xplay-server.service
 
 echo "Success!"
 
