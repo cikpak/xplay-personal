@@ -1,6 +1,5 @@
 const cmd = require("node-cmd");
-const { errors, strErrors } = require("./utils/errors");
-
+const { errors, strErrors } = require("../utils/errors");
 
 function delay(ms) {
   return new Promise((resolve) => {
@@ -8,30 +7,66 @@ function delay(ms) {
   });
 }
 
-const getZerotierIp = async (count=0) => {
+const getNetworkIp = async (networkId) => {
+  // return               if
+  // undefined            is user is not in network with networkId
+  // 'PRIVATE_NETWORK'    network is private
+  // 'NETWORK_ERROR'      network error
+  const networkIdRegex = new RegExp(networkId);
+  const { err, data } = cmd.runSync("sudo zerotier-cli listnetworks");
+
+  const network = data
+    .split("\n")
+    .filter((network) => network.match(networkIdRegex));
+
+  if (!network.length) return undefined;
+
+  const splitNetwork = network[0].split(" ");
+  const networkStatus = splitNetwork[6];
+  const ip = splitNetwork[8];
+  const networkStatusCode = splitNetwork[0];
+
+  if (networkStatus !== "PUBLIC") {
+    if (networkStatus === "PRIVATE") return "PRIVATE_NETWORK";
+    //TODO - return more zerotier statuses
+    return "NETWORK_ERROR";
+  } else if (networkStatusCode !== "200") {
+    return "NETWORK_ERROR";
+  }
+
+  return ip.split("/")[0];
+};
+
+//get ip by network id
+const getIpByNetworkId = async (networkId, count = 0) => {
   try {
+    const networkIdRegex = new RegExp(networkId);
     const { err, data } = cmd.runSync("sudo zerotier-cli listnetworks");
+
     if (err) {
       throw err;
     }
 
-    const splitedData = data
-      .split("\n")
-      .filter((piece) => piece !== "")[1]
-      .split(" ");
+    const networks = data.split("\n");
 
-    if (splitedData[6] === "PRIVATE") {
-      throw "PRIVATE_NETWORK";
-    }
+    const userNetwork = networks.filter((network) =>
+      network.match(networkIdRegex)
+    );
+
+    const splitedData = userNetwork[0].split(" ");
 
     if (splitedData[0] === "200" && splitedData[5] === "OK") {
+      if (splitedData[6] === "PRIVATE") {
+        throw "PRIVATE_NETWORK";
+      }
+
       return splitedData[8].split("/")[0];
     } else {
-      if(count === 10){
-        return 'CONFIGURATION_TIMEOUT'
+      if (count >= process.env.WAIT_CONFIGURATION) {
+        return "CONFIGURATION_TIMEOUT";
       }
       await delay(1000);
-      return getZerotierIp(++count);
+      return getIpByNetworkId(networkId, ++count);
     }
   } catch (err) {
     console.error(err);
@@ -39,82 +74,66 @@ const getZerotierIp = async (count=0) => {
   }
 };
 
-const leaveNetwork = (network) => {
-  //extract network id from network
-  const id = network.split(" ")[2];
-
-  try {
-    const { err, data } = cmd.runSync(`sudo zerotier-cli leave ${id}`);
-    console.log('data :>> ', data);
-    if (!err) {
-      return data;
-    }
-
-    throw err;
-  } catch (err) {
-    console.error(err);
-    return err;
-  }
-};
-
-const checkNetworks = () => {
+const findUserInNetworks = (userNetworkId) => {
+  const userNetworkIdRegex = new RegExp(userNetworkId);
   const { err, data } = cmd.runSync("sudo zerotier-cli listnetworks");
 
-  if (!err) {
-    const networks = data.split("\n").filter((network) => network !== "");
-    //TO-DO: refactor to leave more than one network
-    if (networks.length > 2) leaveNetwork(networks[1]);
+  if (err) {
+    //TODO - rethink err return logic
+    return "ZEROTIER_ERROR";
   }
-};
 
-const checkNetworkAvailability = async () => {
-  const { err, data } = cmd.runSync("sudo zerotier-cli listnetworks");
+  //check if user is already in this network
+  const networks = data.split("\n");
 
-  if (!err) {
-    const networks = data.split("\n").filter((network) => network !== "");
+  const userNetwork = networks.filter((network) => {
+    return network.match(userNetworkIdRegex);
+  });
 
-    //check if network is not private
-    const splitData = networks[1].split(" ");
-
-    if (splitData[6] === "PRIVATE") {
-      if (splitData[5] === "REQUESTING_CONFIGURATION") {
-        await delay(1000)
-        return checkNetworkAvailability()
-      }
-
-      leaveNetwork(networks[1]);
-      return "PRIVATE_NETWORK";
-    }
-    return "AVAILABLE";
+  if (userNetwork.length) {
+    console.log("user is alredy in this network");
+    return getNetworkIp(userNetwork[0]);
   }
+
+  return false;
 };
 
 const joinNetwork = async (networkId) => {
-  checkNetworks();
-  //join network
   try {
-    if (networkId !== "") {
-      const { err, data } = cmd.runSync(`sudo zerotier-cli join ${networkId}`);
-
-      if (!err) {
-        const networkStatus = await checkNetworkAvailability();
-
-        if (networkStatus === "AVAILABLE") {
-          return data;
-        } else {
-          return networkStatus;
-        }
-      }
-    } else {
+    if (networkId === "") {
       throw "INVALID_NETWORK_ID";
     }
+
+    //check if user is not already in network and return ip if is
+    const ip = findUserInNetworks(networkId);
+    console.log('ip :>> ', ip);
+
+    if (ip) {
+      return ip;
+    }
+
+    const { err, data } = cmd.runSync(`sudo zerotier-cli join ${networkId}`);
+    console.log('join data :>> ', data);
+
+    if (!data || data.trim() !== "200 join OK"){ throw "ZEROTIER_ERROR";}
+
+    console.log('join succes');
+
+    const networkIp = await getIpByNetworkId(networkId);
+
+    console.log('network ip from getIpByNetworkId :>> ', networkIp);
+
+    if (networkIp in strErrors) {
+      throw networkIp;
+    }
+
+    return networkIp;
   } catch (err) {
-    console.error(err);
+    console.log("err :>> ", err);
     return err;
   }
 };
 
 module.exports = {
   joinNetwork,
-  getZerotierIp,
 };

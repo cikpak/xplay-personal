@@ -1,10 +1,11 @@
 {
   "name": "xplay-personal-server",
-  "version": "1.0.0",
-  "description": "xplay personal use server for raspberry",
+  "version": "0.0.1",
+  "description": "XPlay personal use server for raspberry",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "keywords": [
     "xplay",
@@ -15,8 +16,10 @@
   "author": "cikpak",
   "license": "ISC",
   "dependencies": {
+    "auto-git-update": "^2.0.1",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
+    "morgan": "^1.10.0",
     "node-cmd": "^4.0.0",
     "xbox-on": "0.0.10"
   },

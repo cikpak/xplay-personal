@@ -3,24 +3,23 @@ const Xbox = require("xbox-on");
 const { joinNetwork, getZerotierIp } = require("../services/zerotier");
 const cmd = require("node-cmd");
 const router = new Router();
-const { errors, strErrors, status } = require("../services/utils/errors");
+const { errors, strErrors, status } = require("../utils/errors");
 
-
-router.get('/', async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
     res.json({
       success: true,
       strStatus: "AVAILABLE",
       messageText: {
         status: 200,
-        messageText: status["AVAILABLE"]
-      }
-    })
+        messageText: status["AVAILABLE"],
+      },
+    });
   } catch (err) {
-    console.error(err)
-    next(err)
+    console.error(err);
+    next(err);
   }
-})
+});
 
 //power-on xbox
 router.post("/xbox-on", [], (req, res, next) => {
@@ -41,17 +40,17 @@ router.post("/xbox-on", [], (req, res, next) => {
           strStatus: "SUCCESS",
           messages: {
             status: 200,
-            messageText: status['SUCCESS']
+            messageText: status["SUCCESS"],
           },
         });
       }
 
       res.status(400).json({
         success: false,
-        strStatus: 'FAILED_TO_POWER_ON',
+        strStatus: "FAILED_TO_POWER_ON",
         messages: {
           status: 400,
-          messageText: errors['FAILED_TO_POWER_ON'],
+          messageText: errors["FAILED_TO_POWER_ON"],
         },
       });
     });
@@ -64,40 +63,27 @@ router.post("/xbox-on", [], (req, res, next) => {
 //join zerotier network
 router.post("/join", [], async (req, res, next) => {
   try {
-    const { zerotier_network_id } = req.body;
-    const result = await joinNetwork(zerotier_network_id);
+    const zerotierIp = await joinNetwork(req.body.zerotier_network_id);
 
-    if (result in strErrors) {
+    if (strErrors.indexOf(zerotierIp)) {
       return res.status(400).json({
         success: false,
-        strStatus: result,
+        rasp_ip: null,
+        strStatus: zerotierIp,
         messages: {
           status: 400,
-          messageText: errors[result],
+          messageText: errors[zerotierIp],
         },
       });
     }
-
-    if (result.trim() !== "200 join OK") {
-      res.status(400).json({
-        success: false,
-        strStatus: "FAILED_TO_JOIN",
-        messages: {
-          status: 400,
-          messageText: errors["FAILED_TO_JOIN"],
-        },
-      });
-    }
-
-    const zerotierIp = await getZerotierIp();
 
     res.json({
       success: true,
       rasp_ip: zerotierIp,
-      strStatus: 'SUCCESS',
+      strStatus: "SUCCESS",
       messages: {
         status: 200,
-        messageText: status['SUCCESS'],
+        messageText: status["SUCCESS"],
       },
     });
   } catch (err) {
@@ -119,10 +105,10 @@ router.post("/iptable-allow", [], (req, res, next) => {
     if (!err) {
       res.json({
         success: true,
-        strStatus: 'SUCCESS',
+        strStatus: "SUCCESS",
         messages: {
           status: 200,
-          messageText: status['SUCCESS'],
+          messageText: status["SUCCESS"],
         },
       });
     }
@@ -136,35 +122,23 @@ router.post("/iptable-allow", [], (req, res, next) => {
 router.post("/play", [], async (req, res, next) => {
   try {
     const { zerotier_network_id, xbox_ip, src_ip, xbox_id } = req.body;
-    const result = await joinNetwork(zerotier_network_id);
 
-    if (result in strErrors) {
+    const zerotierIp = await joinNetwork(zerotier_network_id);
+
+    if (strErrors.indexOf(zerotierIp) != -1) {
       return res.status(400).json({
         success: false,
-        strStatus: result,
+        rasp_ip: null,
+        strStatus: zerotierIp,
         messages: {
           status: 400,
-          messageText: errors[result],
+          messageText: errors[zerotierIp],
         },
       });
     }
-
-    if (result.trim() !== "200 join OK") {
-      res.status(400).json({
-        success: false,
-        strStatus: "FAILED_TO_JOIN",
-        messages: {
-          status: 400,
-          messageText: errors["FAILED_TO_JOIN"],
-        },
-      });
-    }
-
-    const zerotierIp = await getZerotierIp();
 
     const command = `sudo bash ./forward.sh -s ${src_ip} -x ${xbox_ip}`;
     const { err, data } = cmd.runSync(command);
-
 
     const xbox = new Xbox(xbox_ip, xbox_id);
 
@@ -175,24 +149,25 @@ router.post("/play", [], async (req, res, next) => {
     };
 
     xbox.powerOn(options, (err) => {
-      if (!err) {
-        return res.json({
-          success: true,
-          rasp_ip: zerotierIp,
-          strStatus: 'READY_TO_PLAY',
+      if (err) {
+        res.status(400).json({
+          success: false,
+          rasp_ip: null,
+          strError: "FAILED_TO_POWER_ON",
           messages: {
-            status: 200,
-            messageText: "Ready to play!",
+            status: 400,
+            messageText: errors["FAILED_TO_POWER_ON"],
           },
         });
       }
 
-      res.status(400).json({
-        success: false,
-        strError: 'FAILED_TO_POWER_ON',
+      return res.json({
+        success: true,
+        rasp_ip: zerotierIp,
+        strStatus: "READY_TO_PLAY",
         messages: {
-          status: 400,
-          messageText: errors['FAILED_TO_POWER_ON'],
+          status: 200,
+          messageText: "Ready to play!",
         },
       });
     });

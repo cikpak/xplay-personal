@@ -1,4 +1,4 @@
-const {errors} = require('../services/utils/errors')
+const {errors} = require('../utils/errors')
 
 module.exports = async (err, req, res, next) => {
   try {
