@@ -1,9 +1,14 @@
 const { Router } = require("express");
-const Xbox = require("xbox-on");
-const { joinNetwork, getZerotierIp } = require("../services/zerotier");
+const {xboxOn} = require('../services/xbox')
+const { joinNetwork } = require("../services/zerotier");
 const cmd = require("node-cmd");
 const router = new Router();
 const { errors, strErrors, status } = require("../utils/errors");
+const {getXboxIp} = require('../services/nmap')
+const { body } = require("express-validator");
+
+//middleware
+const validate = require('../middlewares/fieldsValidator.middleware')
 
 router.get("/", async (req, res, next) => {
   try {
@@ -21,19 +26,46 @@ router.get("/", async (req, res, next) => {
   }
 });
 
+router.get('/xbox-ip', async (req, res, next) => {
+  try {
+    const xboxIp = getXboxIp()
+    if(xboxIp in strErrors){
+      res.status(400).json({
+        success: false,
+        strStatus: xboxIp,
+        xbox_ip: null,
+        messageText: {
+          status: 400,
+          messageText: status[xboxIp],
+        },
+      });
+    }
+
+    res.json({
+      success: true,
+      strStatus: "SUCCESS",
+      xbox_ip: xboxIp,
+      messageText: {
+        status: 200,
+        messageText: status["SUCCESS"],
+      },
+    });
+  } catch (err) {
+    console.error(err); 
+    next(err)
+  }
+})
+
 //power-on xbox
-router.post("/xbox-on", [], (req, res, next) => {
+router.post("/xbox-on", [
+  body('xbox_ip').isIP(4).withMessage('IP field must contain a valid ip adress!'),
+  body('xbox_id').notEmpty({ignore_whitespace: true}).withMessage('Id field must contain a valid xbox console ID!'),
+  validate
+], (req, res, next) => {
   try {
     const { xbox_ip, xbox_id } = req.body;
-    const xbox = new Xbox(xbox_ip, xbox_id);
-
-    const options = {
-      tries: process.env.XBOX_POWER_ON_TRIES,
-      delay: 1000,
-      waitForCallback: true,
-    };
-
-    xbox.powerOn(options, (err) => {
+    
+    xboxOn(xbox_id, xbox_ip, (err) => {
       if (!err) {
         return res.json({
           success: true,
@@ -47,10 +79,10 @@ router.post("/xbox-on", [], (req, res, next) => {
 
       res.status(400).json({
         success: false,
-        strStatus: "FAILED_TO_POWER_ON",
+        strStatus: err,
         messages: {
           status: 400,
-          messageText: errors["FAILED_TO_POWER_ON"],
+          messageText: errors[err],
         },
       });
     });
@@ -61,7 +93,10 @@ router.post("/xbox-on", [], (req, res, next) => {
 });
 
 //join zerotier network
-router.post("/join", [], async (req, res, next) => {
+router.post("/join", [
+  body('zerotier_network_id').isLength({min: 10, max: 10}).withMessage("Zerotier id field must contain a valid zerotier id!"),
+  validate
+], async (req, res, next) => {
   try {
     const zerotierIp = await joinNetwork(req.body.zerotier_network_id);
 
@@ -92,8 +127,12 @@ router.post("/join", [], async (req, res, next) => {
   }
 });
 
+
 //setup forward.sh
-router.post("/iptable-allow", [], (req, res, next) => {
+router.post("/iptable-allow", [
+  body('xbox_ip').isIP(4).withMessage('IP field must contain a valid ip adress!'),
+  body('src_ip').isIP(4).withMessage('Source ip field must contain a valid ip adress!'),
+], (req, res, next) => {
   try {
     const { xbox_ip, src_ip } = req.body;
 
@@ -118,63 +157,15 @@ router.post("/iptable-allow", [], (req, res, next) => {
   }
 });
 
+
 //play
-router.post("/play", [], async (req, res, next) => {
-  try {
-    const { zerotier_network_id, xbox_ip, src_ip, xbox_id } = req.body;
+router.post("/play", [
+  body('xbox_ip').isIP(4).withMessage('IP field must contain a valid ip adress!'),
+  body('src_ip').isIP(4).withMessage('Source ip field must contain a valid ip adress!'),
+  body('zerotier_network_id').isLength({min: 16, max: 16}).withMessage("Zerotier id field must contain a valid zerotier id!"),
+  body('xbox_id').notEmpty({ignore_whitespace: true}).withMessage('Id field must contain a valid xbox console ID!'),
+  validate], 
+  require('./play'));
 
-    const zerotierIp = await joinNetwork(zerotier_network_id);
-
-    if (strErrors.indexOf(zerotierIp) != -1) {
-      return res.status(400).json({
-        success: false,
-        rasp_ip: null,
-        strStatus: zerotierIp,
-        messages: {
-          status: 400,
-          messageText: errors[zerotierIp],
-        },
-      });
-    }
-
-    const command = `sudo bash ./forward.sh -s ${src_ip} -x ${xbox_ip}`;
-    const { err, data } = cmd.runSync(command);
-
-    const xbox = new Xbox(xbox_ip, xbox_id);
-
-    const options = {
-      tries: process.env.XBOX_POWER_ON_TRIES,
-      delay: 500,
-      waitForCallback: false,
-    };
-
-    xbox.powerOn(options, (err) => {
-      if (err) {
-        res.status(400).json({
-          success: false,
-          rasp_ip: null,
-          strError: "FAILED_TO_POWER_ON",
-          messages: {
-            status: 400,
-            messageText: errors["FAILED_TO_POWER_ON"],
-          },
-        });
-      }
-
-      return res.json({
-        success: true,
-        rasp_ip: zerotierIp,
-        strStatus: "READY_TO_PLAY",
-        messages: {
-          status: 200,
-          messageText: "Ready to play!",
-        },
-      });
-    });
-  } catch (err) {
-    console.error(err);
-    next(err);
-  }
-});
 
 module.exports = router;

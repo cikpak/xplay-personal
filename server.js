@@ -1,16 +1,16 @@
-const dotenv = require("dotenv");
-dotenv.config();
+require("dotenv").config();
 
 const morgan = require("morgan");
 const path = require("path");
 const fs = require('fs')
 
 const express = require("express");
-const port = process.env.PORT;
+const port = process.env.PORT || 8000;
 
 const app = express();
 
 app.use(express.json());
+
 app.use(
   morgan("common", {
     stream: fs.createWriteStream(path.join(__dirname, "logs.log"), {
@@ -18,6 +18,7 @@ app.use(
     }),
   })
 );
+
 app.use(morgan("dev"));
 app.use(require("./middlewares/logs.middleware"));
 
