@@ -17,7 +17,7 @@ app.use(
       flags: "a",
     }),
   })
-);
+); 
 
 app.use(morgan("dev"));
 app.use(require("./middlewares/logs.middleware"));

@@ -165,7 +165,13 @@ router.post("/play", [
   body('zerotier_network_id').isLength({min: 16, max: 16}).withMessage("Zerotier id field must contain a valid zerotier id!"),
   body('xbox_id').notEmpty({ignore_whitespace: true}).withMessage('Id field must contain a valid xbox console ID!'),
   validate], 
-  require('./play'));
+  require('./play')
+);
+
+router.post('/update', [], require('./update'))
+
+
+
 
 
 module.exports = router;

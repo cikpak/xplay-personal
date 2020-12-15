@@ -31,12 +31,13 @@ const status = {
   AVAILABLE: "Server is working!",
   SUCCESS: "Success!",
   FAILED: "Error!",
+  UP_TO_DATE: 'Server is up to date',
+  UPDATED: 'Server was updated!',
+  UPDATE_ERROR: 'Update failed, try again!'
 };
-
-const strErrors = Object.keys(errors);
 
 module.exports = {
   errors,
   status,
-  strErrors,
+  strErrors: Object.keys(errors);
 };
