@@ -5,7 +5,7 @@ Raspberry WEB server to acces your xbox remote and play from everythere in this 
 ### Instalation
 
 ```sh
-git clone https://github.com/cikpak/xplay-personal.git && cd xplay-personal && bash ./configure.sh
+git clone https://github.com/cikpak/xplay-personal.git && cd xplay-personal && sudo bash ./configure.sh
 ```
 
 ### Environment
