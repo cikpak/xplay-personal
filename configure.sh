@@ -1,8 +1,6 @@
 # exit on any error
 set -e
 
-cd xplay-personal
-
 echo "---Instaling Zerotier-One---"
 sudo curl -s https://install.zerotier.com | bash 
 
