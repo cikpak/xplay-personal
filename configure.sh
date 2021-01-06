@@ -10,7 +10,7 @@ sudo npm install
 
 #create service
 echo "---Creating xplay service---"
-echo "[[Unit]
+sudo echo "[[Unit]
 Description=XPlay-personal raspberry server
 After=network.target
 
