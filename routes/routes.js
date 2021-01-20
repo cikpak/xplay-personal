@@ -1,10 +1,10 @@
 const { Router } = require("express");
-const {xboxOn} = require('../services/xbox')
+const { xboxOn } = require('../services/xbox')
 const { joinNetwork } = require("../services/zerotier");
 const cmd = require("node-cmd");
 const router = new Router();
 const { errors, strErrors, status } = require("../utils/errors");
-const {getXboxIp} = require('../services/nmap')
+const { getXboxIp } = require('../services/nmap')
 const { body } = require("express-validator");
 
 //middleware
@@ -29,8 +29,9 @@ router.get("/", async (req, res, next) => {
 router.get('/xbox-ip', async (req, res, next) => {
   try {
     const xboxIp = getXboxIp()
-    if(xboxIp in strErrors){
-      res.status(400).json({
+
+    if (strErrors.indexOf(xboxIp)) {
+      return res.status(400).json({
         success: false,
         strStatus: xboxIp,
         xbox_ip: null,
@@ -41,7 +42,7 @@ router.get('/xbox-ip', async (req, res, next) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       strStatus: "SUCCESS",
       xbox_ip: xboxIp,
@@ -51,7 +52,7 @@ router.get('/xbox-ip', async (req, res, next) => {
       },
     });
   } catch (err) {
-    console.error(err); 
+    console.error(err);
     next(err)
   }
 })
@@ -59,12 +60,12 @@ router.get('/xbox-ip', async (req, res, next) => {
 //power-on xbox
 router.post("/xbox-on", [
   body('xbox_ip').isIP(4).withMessage('IP field must contain a valid ip adress!'),
-  body('xbox_id').notEmpty({ignore_whitespace: true}).withMessage('Id field must contain a valid xbox console ID!'),
+  body('xbox_id').notEmpty({ ignore_whitespace: true }).withMessage('Id field must contain a valid xbox console ID!'),
   validate
 ], (req, res, next) => {
   try {
     const { xbox_ip, xbox_id } = req.body;
-    
+
     xboxOn(xbox_id, xbox_ip, (err) => {
       if (!err) {
         return res.json({
@@ -94,13 +95,13 @@ router.post("/xbox-on", [
 
 //join zerotier network
 router.post("/join", [
-  body('zerotier_network_id').isLength({min: 10, max: 10}).withMessage("Zerotier id field must contain a valid zerotier id!"),
+  body('zerotier_network_id').isLength({ min: 16, max: 16 }).withMessage("Zerotier id field must contain a valid zerotier id!"),
   validate
 ], async (req, res, next) => {
   try {
     const zerotierIp = await joinNetwork(req.body.zerotier_network_id);
 
-    if (strErrors.indexOf(zerotierIp)) {
+    if (strErrors.indexOf(zerotierIp) !== -1) {
       return res.status(400).json({
         success: false,
         rasp_ip: null,
@@ -127,7 +128,6 @@ router.post("/join", [
   }
 });
 
-
 //setup forward.sh
 router.post("/iptable-allow", [
   body('xbox_ip').isIP(4).withMessage('IP field must contain a valid ip adress!'),
@@ -135,11 +135,8 @@ router.post("/iptable-allow", [
 ], (req, res, next) => {
   try {
     const { xbox_ip, src_ip } = req.body;
-
     const command = `sudo bash ./forward.sh -s ${src_ip} -x ${xbox_ip}`;
-
     const { err, data } = cmd.runSync(command);
-    console.log("data :>> ", data);
 
     if (!err) {
       res.json({
@@ -162,16 +159,12 @@ router.post("/iptable-allow", [
 router.post("/play", [
   body('xbox_ip').isIP(4).withMessage('IP field must contain a valid ip adress!'),
   body('src_ip').isIP(4).withMessage('Source ip field must contain a valid ip adress!'),
-  body('zerotier_network_id').isLength({min: 16, max: 16}).withMessage("Zerotier id field must contain a valid zerotier id!"),
-  body('xbox_id').notEmpty({ignore_whitespace: true}).withMessage('Id field must contain a valid xbox console ID!'),
-  validate], 
+  body('zerotier_network_id').isLength({ min: 16, max: 16 }).withMessage("Zerotier id field must contain a valid zerotier id!"),
+  body('xbox_id').notEmpty({ ignore_whitespace: true }).withMessage('Id field must contain a valid xbox console ID!'),
+  validate],
   require('./play')
 );
 
-router.post('/update', [], require('./update'))
-
-
-
-
+// router.post('/update', [], require('./update'))
 
 module.exports = router;

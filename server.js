@@ -9,6 +9,7 @@ const port = process.env.PORT || 8000;
 
 const app = express();
 
+app.use(require('cors')())
 app.use(express.json());
 
 app.use(
@@ -23,7 +24,7 @@ app.use(morgan("dev"));
 app.use(require("./middlewares/logs.middleware"));
 
 app.use("/", require("./routes/routes"));
-// app.use('/hamachi', require('./routes/hamach'))
+app.use('/v2', require('./routes/routesV2'))
 
 app.use(require("./middlewares/errors.middleware"));
 

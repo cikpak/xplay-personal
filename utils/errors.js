@@ -39,5 +39,5 @@ const status = {
 module.exports = {
   errors,
   status,
-  strErrors: Object.keys(errors);
+  strErrors: Object.keys(errors)
 };

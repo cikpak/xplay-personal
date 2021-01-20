@@ -52,7 +52,6 @@ const getIpByNetworkId = async (networkId, count = 0) => {
     const userNetwork = networks.filter((network) =>
       network.match(networkIdRegex)
     );
-
     const splitedData = userNetwork[0].split(" ");
 
     if (splitedData[0] === "200" && splitedData[5] === "OK") {
@@ -84,14 +83,11 @@ const findUserInNetworks = (userNetworkId) => {
   }
 
   //check if user is already in this network
-  const networks = data.split("\n");
+  const networks = data.split('\n').filter(network => network !== '')
 
-  const userNetwork = networks.filter((network) => {
-    return network.match(userNetworkIdRegex);
-  });
+  const userNetwork = networks.filter(network => network.match(userNetworkIdRegex));
 
   if (userNetwork.length) {
-    console.log("user is alredy in this network");
     return getNetworkIp(userNetwork[0]);
   }
 
@@ -105,29 +101,21 @@ const joinNetwork = async (networkId) => {
     }
 
     //check if user is not already in network and return ip if is
-    const ip = findUserInNetworks(networkId);
-    console.log('ip :>> ', ip);
-
+    const userIp = findUserInNetworks(networkId);
+    const ip = await userIp
     if (ip) {
       return ip;
     }
 
     const { err, data } = cmd.runSync(`sudo zerotier-cli join ${networkId}`);
-    console.log('join data :>> ', data);
-
-    if (!data || data.trim() !== "200 join OK"){ throw "ZEROTIER_ERROR";}
-
-    console.log('join succes');
-
+    if (!data || data.trim() !== "200 join OK") { throw "ZEROTIER_ERROR"; }
     const networkIp = await getIpByNetworkId(networkId);
-
-    console.log('network ip from getIpByNetworkId :>> ', networkIp);
 
     if (networkIp in strErrors) {
       throw networkIp;
     }
-
     return networkIp;
+
   } catch (err) {
     console.log("err :>> ", err);
     return err;
