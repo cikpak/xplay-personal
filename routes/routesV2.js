@@ -10,6 +10,8 @@ const validate = require('../middlewares/fieldsValidator.middleware')
 
 const router = new Router()
 
+
+//join tailscale network
 router.post('/join', async (req, res, next) => {
 	try {
 		const tailscaleIp = joinNetwork(req.body.tailscale_id);
@@ -41,21 +43,15 @@ router.post('/join', async (req, res, next) => {
 	}
 })
 
-
 //TODO - add verification for every body field
 router.post('/play',
-	//  [
-	// 	body('xbox_ip').isIP(4).withMessage('IP field must contain a valid ip adress!'),
-	// 	body('src_ip').isIP(4).withMessage('Source ip field must contain a valid ip adress!'),
-	// 	body('zerotier_network_id').isLength({ min: 16, max: 16 }).withMessage("Zerotier id field must contain a valid zerotier id!"),
-	// 	body('xbox_id').notEmpty({ ignore_whitespace: true }).withMessage('Id field must contain a valid xbox console ID!'),
-	// 	validate
-	// ],
 	async (req, res, next) => {
 		try {
+			console.log('req.body', req.body)
 			const { tailscale_id, xbox_ip, src_ip, xbox_id } = req.body;
 
 			const tailscaleIp = await joinNetwork(tailscale_id);
+			console.log('raspberry tailscaleIp', tailscaleIp)
 
 			if (strErrors.indexOf(tailscaleIp) !== -1) {
 				return res.status(400).json({
@@ -101,6 +97,8 @@ router.post('/play',
 	}
 )
 
+
+//configure iptables
 router.post("/iptable-allow",
 	[
 		body('xbox_ip').isIP(4).withMessage('IP field must contain a valid ip adress!'),
@@ -128,11 +126,13 @@ router.post("/iptable-allow",
 		}
 	});
 
+
+//get xbox ip
 router.get('/xbox-ip', async (req, res, next) => {
 	try {
 		const xboxIp = getXboxIp()
 
-		if (strErrors.indexOf(xboxIp)) {
+		if (strErrors.indexOf(xboxIp) !== -1) {
 			return res.status(400).json({
 				success: false,
 				strStatus: xboxIp,
@@ -159,6 +159,8 @@ router.get('/xbox-ip', async (req, res, next) => {
 	}
 })
 
+
+//power on xbox
 router.post("/xbox-on",
 	[
 		body('xbox_ip').isIP(4).withMessage('IP field must contain a valid ip adress!'),

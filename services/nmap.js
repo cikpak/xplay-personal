@@ -20,8 +20,9 @@ const getXboxIp = () => {
 
     const xbox = data.split("Nmap ").filter((host) => host.search("Microsoft") != -1 && host.search("3074/udp open") != -1)
 
+
     if (xbox.length) {
-      return xbox[0].match(regex.ip)
+      return xbox[0].match(regex.ip)[0]
     }
 
     return 'XBOX_IP_NOT_FOUND'

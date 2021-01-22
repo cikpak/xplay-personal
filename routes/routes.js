@@ -29,8 +29,8 @@ router.get("/", async (req, res, next) => {
 router.get('/xbox-ip', async (req, res, next) => {
   try {
     const xboxIp = getXboxIp()
-
-    if (strErrors.indexOf(xboxIp)) {
+    
+    if (strErrors.indexOf(xboxIp) !== -1) {
       return res.status(400).json({
         success: false,
         strStatus: xboxIp,
@@ -137,6 +137,8 @@ router.post("/iptable-allow", [
     const { xbox_ip, src_ip } = req.body;
     const command = `sudo bash ./forward.sh -s ${src_ip} -x ${xbox_ip}`;
     const { err, data } = cmd.runSync(command);
+
+    console.log('data', data)
 
     if (!err) {
       res.json({

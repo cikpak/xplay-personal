@@ -26,7 +26,7 @@ module.exports = async (req, res, next) => {
 
     xboxOn(xbox_id, xbox_ip, (err) => {
       if (err) {
-        res.status(400).json({
+        return res.status(400).json({
           success: false,
           rasp_ip: null,
           strError: err,
