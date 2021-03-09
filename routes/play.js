@@ -1,12 +1,12 @@
 const { xboxOn } = require("../services/xbox");
 const { joinNetwork } = require("../services/zerotier");
-const {runSync} = require("node-cmd");
+const { runSync } = require("node-cmd");
 const { errors, strErrors } = require("../utils/errors");
 
 
 module.exports = async (req, res, next) => {
   try {
-    const { zerotier_network_id, xbox_ip, src_ip, xbox_id } = req.body;
+    const { zerotier_network_id, xbox_ip, src_ip, xbox_id, rasp_local_ip, rasp_vpn_ip } = req.body;
 
     const zerotierIp = await joinNetwork(zerotier_network_id);
 
@@ -22,7 +22,7 @@ module.exports = async (req, res, next) => {
       });
     }
 
-    runSync(`sudo bash ./forward.sh -s ${src_ip} -x ${xbox_ip}`);
+    runSync(`sudo bash ./forward.sh -s ${src_ip} -x ${xbox_ip} -l ${rasp_local_ip} -z ${rasp_vpn_ip}`);
 
     xboxOn(xbox_id, xbox_ip, (err) => {
       if (err) {

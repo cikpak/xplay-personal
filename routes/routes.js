@@ -3,12 +3,66 @@ const { xboxOn } = require('../services/xbox')
 const { joinNetwork } = require("../services/zerotier");
 const cmd = require("node-cmd");
 const router = new Router();
+const path = require('path')
 const { errors, strErrors, status } = require("../utils/errors");
 const { getXboxIp } = require('../services/nmap')
 const { body } = require("express-validator");
+const fs = require('fs')
+const withSocket = require('../Sockets/index')
+const Cryptr = require('cryptr');
 
 //middleware
-const validate = require('../middlewares/fieldsValidator.middleware')
+const validate = require('../middlewares/fieldsValidator.middleware');
+
+router.post('/hello', async (req, res, next) => {
+  const dataFilePath = path.join(__dirname, '../data.txt')
+  const { userId, secret } = req.body
+
+  if (!fs.existsSync(dataFilePath)) {
+    fs.openSync(dataFilePath, 'w')
+  }
+
+  try {
+    fs.readFile(dataFilePath, (err, data) => {
+      if (err) {
+        console.log('err', err)
+        throw err
+      }
+
+      if (data) {
+        let jsonData = {}
+
+        try {
+          jsonData = JSON.parse(data)
+        } catch (error) {
+          console.log('err', err)
+          console.log('can not parse json data from file ')
+        }
+
+        if (Object.keys(jsonData).length) {
+          console.log('jsonData', jsonData)
+        } else {
+          console.log("can't parse json from file")
+        }
+      } else {
+        console.log('absent')
+      }
+    })
+  } catch (err) {
+    console.log('err', err)
+  } finally {
+    fs.writeFile(dataFilePath, JSON.stringify({ "userId": userId }), (err) => {
+      if (err) {
+        res.json({ success: false, msg: 'Failed to save user id!' })
+      } else {
+        res.json({ success: true, msg: 'User id was saved!' })
+      }
+    })
+
+    //start sockets connection
+    withSocket(userId)
+  }
+})
 
 router.get("/", async (req, res, next) => {
   try {
@@ -29,7 +83,7 @@ router.get("/", async (req, res, next) => {
 router.get('/xbox-ip', async (req, res, next) => {
   try {
     const xboxIp = getXboxIp()
-    
+
     if (strErrors.indexOf(xboxIp) !== -1) {
       return res.status(400).json({
         success: false,
@@ -134,11 +188,9 @@ router.post("/iptable-allow", [
   body('src_ip').isIP(4).withMessage('Source ip field must contain a valid ip adress!'),
 ], (req, res, next) => {
   try {
-    const { xbox_ip, src_ip } = req.body;
-    const command = `sudo bash ./forward.sh -s ${src_ip} -x ${xbox_ip}`;
+    const { xbox_ip, src_ip, rasp_local_ip, rasp_vpn_ip } = req.body;
+    const command = `sudo bash ./forward.sh -s ${src_ip} -x ${xbox_ip} -l ${rasp_local_ip} -z ${rasp_vpn_ip}`;
     const { err, data } = cmd.runSync(command);
-
-    console.log('data', data)
 
     if (!err) {
       res.json({

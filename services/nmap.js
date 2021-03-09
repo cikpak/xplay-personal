@@ -1,17 +1,17 @@
 const { runSync } = require("node-cmd");
 const { regex } = require("../utils/regex");
-const { getLocalIp } = require('./network')
+const { getRaspberryLocalIp } = require('./network')
 const { strErrors } = require('../utils/errors')
 
 
 const getXboxIp = () => {
   //TODO - check with pinga and xbox ID if xbox is on
   try {
-    const localIp = getLocalIp();
+    const localIp = getRaspberryLocalIp();
     if (localIp in strErrors) return localIp
 
     const { err, data } = runSync(
-      `nmap -sU -p 3074 ${localIp.slice(0, localIp.lastIndexOf("."))}.0/24`
+      `sudo nmap -sU -p 3074 ${localIp.slice(0, localIp.lastIndexOf("."))}.0/24`
     );
 
     if (err) {

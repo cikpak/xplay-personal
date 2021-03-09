@@ -1,10 +1,9 @@
 const { runSync } = require("node-cmd");
-const {probe} = require('ping').promise
+const { probe } = require('ping').promise
 
-
-const getLocalIp = () => {
+const getRaspberryLocalIp = () => {
   try {
-    const { err, data } = runSync("hostname -I");
+    const { err, data } = runSync("sudo hostname -I");
 
     if (err) {
       throw err;
@@ -20,16 +19,16 @@ const getLocalIp = () => {
 
 
 const ping = async (ip) => {
-    const res = await probe(ip)
+  const res = await probe(ip)
 
-    if(res.alive){
-        return true
-    }
+  if (res.alive) {
+    return true
+  }
 
-    return false
+  return false
 }
 
 module.exports = {
-    getLocalIp,
-    ping
+  getRaspberryLocalIp,
+  ping
 }

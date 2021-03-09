@@ -1,6 +1,8 @@
 node_modules
 tests
+experimental
 services/hamachi.js
 routes/hamachi.js
+package-lock.json
 *.log
 *.vscode

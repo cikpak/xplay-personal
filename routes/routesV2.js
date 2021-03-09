@@ -48,7 +48,7 @@ router.post('/play',
 	async (req, res, next) => {
 		try {
 			console.log('req.body', req.body)
-			const { tailscale_id, xbox_ip, src_ip, xbox_id } = req.body;
+			const { tailscale_id, xbox_ip, src_ip, xbox_id, rasp_local_ip, rasp_vpn_ip } = req.body;
 
 			const tailscaleIp = await joinNetwork(tailscale_id);
 			console.log('raspberry tailscaleIp', tailscaleIp)
@@ -65,7 +65,7 @@ router.post('/play',
 				});
 			}
 
-			runSync(`sudo bash ./forward.sh -s ${src_ip} -x ${xbox_ip}`);
+			runSync(`sudo bash ./forward.sh -s ${src_ip} -x ${xbox_ip} -l ${rasp_local_ip} -z ${rasp_vpn_ip}`);
 
 			xboxOn(xbox_id, xbox_ip, (err) => {
 				if (err) {
@@ -106,8 +106,8 @@ router.post("/iptable-allow",
 	],
 	(req, res, next) => {
 		try {
-			const { xbox_ip, src_ip } = req.body;
-			const command = `sudo bash ./forward.sh -s ${src_ip} -x ${xbox_ip}`;
+			const { xbox_ip, src_ip, rasp_local_ip, rasp_vpn_ip } = req.body;
+			const command = `sudo bash ./forward.sh -s ${src_ip} -x ${xbox_ip} -l ${rasp_local_ip} -z ${rasp_vpn_ip}`;
 			const { err, data } = cmd.runSync(command);
 
 			if (!err) {

@@ -4,8 +4,8 @@
   "description": "XPlay personal use server for raspberry",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "cross-env NODE_ENV=production node server.js",
+    "dev": "cross-env NODE_ENV=development nodemon server.js"
   },
   "keywords": [
     "xplay",
@@ -18,13 +18,19 @@
   "dependencies": {
     "auto-git-update": "^2.0.1",
     "cors": "^2.8.5",
+    "cross-env": "^7.0.3",
+    "cryptr": "^6.0.2",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-validator": "^6.8.0",
     "jsonwebtoken": "^8.5.1",
+    "lowdb": "^1.0.0",
     "morgan": "^1.10.0",
     "node-cmd": "^4.0.0",
-    "ping": "^0.3.0"
+    "ping": "^0.3.0",
+    "socket.io": "^3.1.2",
+    "socket.io-client": "^3.1.2",
+    "xbox-smartglass-core-node": "^0.6.7"
   },
   "devDependencies": {
     "nodemon": "^2.0.6"

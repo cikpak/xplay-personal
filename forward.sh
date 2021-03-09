@@ -18,18 +18,10 @@ do
   esac
   shift
 done
-if [ -z $xbox_ip ]; then echo xbox_ip empty; exit 1; fi
-if [ -z $src_ip ];  then echo src_ip empty;  exit 1; fi
-if [ -z $lan_ip ];  then
-  lan_ip=`ip -4 addr show eth0| grep -oP '(?<=inet\s)\d+(\.\d+){3}'`
-  echo $lan_ip
-fi
-if [ -z $lan_ip ];   then echo lan_ip empty;   exit 1; fi
-if [ -z $zt_ip ];  then
-  zt_ip=`sudo zerotier-cli listnetworks |cut -d " " -f9 |cut -d/ -f1|grep -F "."`
-  echo $zt_ip
-fi
-if [ -z $zt_ip ];   then echo zt_ip empty;   exit 1; fi
+if [ -z $xbox_ip ]; then echo -x / --xbox-ip empty; exit 1; fi
+if [ -z $src_ip ];  then echo -s / --src-ip empty;  exit 1; fi
+if [ -z $lan_ip ];  then echo -l / --lan-ip empty;  exit 1; fi
+if [ -z $zt_ip ];   then echo -z / --zt-ip empty;   exit 1; fi
 
 #echo $xbox_ip
 #echo $src_ip
