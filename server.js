@@ -9,8 +9,8 @@ const port = process.env.PORT || 8000;
 const websocket = require('socket.io')
 const socketClient = require('socket.io-client')
 const { strErrors } = require('./utils/errors');
-const withSocket = require('./Sockets/index')
-
+const withSocket = require('./Sockets/index');
+const { getUserId } = require('./utils/userIdManager');
 
 app.use(require('cors')())
 app.use(express.json());
@@ -38,19 +38,15 @@ const io = websocket(server, {
 
 io.on('connection', (client) => { console.log('connection') })
 
-let userId = undefined
+try {
+  data = getUserId()
 
-try{
- userId = JSON.parse(fs.readFileSync('./data.txt')).userId
-}catch (err) {
+  if (data.userId) {
+    withSocket(data.userId, io)
+  }
+} catch (err) {
   console.log('err', err)
 }
-
-if(userId){
-  withSocket(userId)
-}
-
-//SocketIO client
 
 //start server
 server.listen(port, () => {

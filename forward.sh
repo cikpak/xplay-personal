@@ -27,10 +27,10 @@ if [ -z $zt_ip ];   then echo -z / --zt-ip empty;   exit 1; fi
 #echo $src_ip
 sudo iptables -F -t nat
 sudo iptables -F
-sudo iptables -t nat -p tcp -A PREROUTING  -s $src_ip  -d $zt_ip  ! --dport 8000 -j DNAT --to $xbox_ip
-sudo iptables -t nat -p udp -A PREROUTING  -s $src_ip  -d $zt_ip                 -j DNAT --to $xbox_ip
-sudo iptables -t nat        -A PREROUTING  -s $xbox_ip -d $lan_ip                -j DNAT --to $src_ip
+sudo iptables -t nat -p tcp -A PREROUTING  -s $src_ip  -d $zt_ip    ! --dports 8000,5201  -j DNAT --to $xbox_ip
+sudo iptables -t nat -p udp -A PREROUTING  -s $src_ip  -d $zt_ip    ! --dport 5102        -j DNAT --to $xbox_ip
+sudo iptables -t nat        -A PREROUTING  -s $xbox_ip -d $lan_ip                         -j DNAT --to $src_ip
 #iptables -p tcp -A FORWARD     -d $zt_ip  --dport 1880 -j REJECT
 #iptables        -A FORWARD     -d $zt_ip               -j ACCEPT
-sudo iptables -t nat        -A POSTROUTING -s $src_ip  -d $xbox_ip               -j SNAT --to $lan_ip
-sudo iptables -t nat        -A POSTROUTING -s $xbox_ip -d $src_ip                -j SNAT --to $zt_ip
+sudo iptables -t nat        -A POSTROUTING -s $src_ip  -d $xbox_ip                        -j SNAT --to $lan_ip
+sudo iptables -t nat        -A POSTROUTING -s $xbox_ip -d $src_ip                         -j SNAT --to $zt_ip

@@ -4,7 +4,7 @@ const { runSync } = require('node-cmd')
 const { joinNetwork } = require('../services/tailscale')
 const { xboxOn } = require('../services/xbox')
 const { errors, strErrors, status } = require("../utils/errors");
-const { getXboxIp } = require('../services/nmap')
+const { getXboxIp } = require('../services/xbox')
 const { body } = require("express-validator");
 const validate = require('../middlewares/fieldsValidator.middleware')
 

@@ -1,12 +1,12 @@
-const socketClient = require('socket.io-client')
 const { strErrors } = require('../utils/errors')
 const joinZerotierNetwork = require('../services/zerotier').joinNetwork;
 const joinTailscaleNetwork = require('../services/tailscale').joinNetwork
 const { getRaspberryLocalIp } = require('../services/network')
-const { getXboxIp } = require('../services/nmap')
+const { getXboxIp, getXboxData, xboxOn, tryWakeUp } = require('../services/xbox')
+const cmd = require("node-cmd");
 
-const sockets = (userId) => {
-    const socket = socketClient.connect(process.env.XPLAY_SERVER, {
+const sockets = (userId, clientSocket) => {
+    const socket = require('socket.io-client').connect(process.env.XPLAY_SERVER, {
         query: {
             userId,
         },
@@ -20,11 +20,9 @@ const sockets = (userId) => {
         console.log('---socket connected to server---')
     });
 
-
     //handle zerotier join event
     socket.on('join zerotier', async (data, cb) => {
         const { networkId } = data
-        console.log('networkId', networkId)
         const ip = await joinZerotierNetwork(networkId)
 
         if (ip && strErrors.indexOf(ip) === -1) {
@@ -52,11 +50,12 @@ const sockets = (userId) => {
 
         try {
             const raspberryIp = getRaspberryLocalIp()
-            console.log('raspberryIp', raspberryIp)
 
             if (raspberryIp && strErrors.indexOf(raspberryIp) === -1) {
                 return cb({ success: true, msg: 'Success to get rasp ip!', raspberryIp })
             }
+
+            console.log('data :>> ', data);
 
             throw 'Failed to get rasp ip!'
         } catch (err) {
@@ -65,41 +64,64 @@ const sockets = (userId) => {
     })
 
     //handle get xbox ip
-    socket.on('get xbox ip', async (data, cb) => {
-        console.log('trying to get xbox ip ')
+    socket.on('get xbox data', async (data, cb) => {
+        console.log(`get xbox data`)
+        let xboxIp = data.xboxIp
 
         try {
-            const xboxIp = getXboxIp()
-            console.log('xboxIp', xboxIp)
+            if (!xboxIp) {
+                console.log('getting xbox ip')
+                xboxIp = getXboxIp()
+            }
 
             if (xboxIp && strErrors.indexOf(xboxIp) === -1) {
-                return cb({ success: true, msg: 'Success to get xbox ip!', xboxIp })
+
+                getXboxData(xboxIp, (err, xboxId) => {
+                    if (err) {
+                        console.log(`err`, err)
+                        return cb({ success: false, msg: err, xboxId: null, xboxIp })
+                    } else {
+                        console.log(`xboxIp: ${xboxIp} --- xboxId: ${xboxId}`)
+                        return cb({ success: true, msg: 'Success!', xboxId, xboxIp })
+                    }
+                })
+
+                return
             }
 
             throw 'Failed to get xbox ip!'
         } catch (err) {
-            cb({ success: false, msg: err, xboxIp: null })
+            console.log(`err `, err)
+            cb({ success: false, msg: err, xboxIp: null, xboxId: null })
         }
     })
 
-    //gandle get xbox id 
-    //TODO - add this function
-    // socket.on('get xbox id', async (data, cb) => {
-    //     console.log('trying to get xbox ip ')
+    socket.on('raspberry reboot', async (data, cb) => {
+        const command = `sudo reboot`
+        setTimeout(() => { cmd.runSync(command) }, 2000)
 
-    //     try {
-    //         const xboxIp = getXboxIp()
-    //         console.log('xboxIp', xboxIp)
+        cb({
+            success: true,
+            status: 200,
+            msg: 'Reboot success!'
+        })
+    })
 
-    //         if (xboxIp && strErrors.indexOf(xboxIp) === -1) {
-    //             return cb({ success: true, msg: 'Success to get xbox ip!', xboxIp })
-    //         }
+    socket.on('xbox find start', (data, cb) => {
+        const { xboxId } = data
 
-    //         throw 'Failed to get xbox ip!'
-    //     } catch (err) {
-    //         cb({ success: false, msg: err, xboxIp: null })
-    //     }
-    // })
+        //respond to main server 
+        cb({ success: true })
+
+        //call xbox find function
+        tryWakeUp(xboxId, (err, xboxData) => {
+            if (err) {
+                //emit response direct to desktop client
+                clientSocket.emit('xbox find finish', { success: false, msg: err })
+            }
+            clientSocket.emit('xbox find finish', { success: true, msg: `Xbox was find at ${xboxData.xboxIp}!`, ...xboxData })
+        })
+    })
 
     return socket
 }

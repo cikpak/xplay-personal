@@ -20,7 +20,7 @@ Environment="WAIT_CONFIGURATION=10"
 Environment="XBOX_POWER_ON_TRIES=10"
 Type=simple
 User=pi
-ExecStart=/usr/bin/node $PWD/server.js
+ExecStart=/usr/bin/sudo NODE_ENV=production /usr/bin/node $PWD/server.js
 Restart=on-failure
 
 [Install]

@@ -5,64 +5,47 @@ const cmd = require("node-cmd");
 const router = new Router();
 const path = require('path')
 const { errors, strErrors, status } = require("../utils/errors");
-const { getXboxIp } = require('../services/nmap')
+const { getXboxIp } = require('../services/xbox')
 const { body } = require("express-validator");
 const fs = require('fs')
 const withSocket = require('../Sockets/index')
 const Cryptr = require('cryptr');
-
-//middleware
+const { saveUserId } = require('../utils/userIdManager')
 const validate = require('../middlewares/fieldsValidator.middleware');
 
 router.post('/hello', async (req, res, next) => {
-  const dataFilePath = path.join(__dirname, '../data.txt')
   const { userId, secret } = req.body
+  const wasSaved = saveUserId(userId)
 
-  if (!fs.existsSync(dataFilePath)) {
-    fs.openSync(dataFilePath, 'w')
+  if (wasSaved) {
+    res.json({ success: true, msg: 'User id was saved!' })
+  } else {
+    res.json({ success: false, msg: 'Failed to save user id!' })
   }
 
+  withSocket(userId)
+})
+
+
+router.post('/reboot', (req, res, next) => {
   try {
-    fs.readFile(dataFilePath, (err, data) => {
-      if (err) {
-        console.log('err', err)
-        throw err
-      }
+    const command = `sudo reboot`
+    setTimeout(() => { cmd.runSync(command) }, 2000)
 
-      if (data) {
-        let jsonData = {}
-
-        try {
-          jsonData = JSON.parse(data)
-        } catch (error) {
-          console.log('err', err)
-          console.log('can not parse json data from file ')
-        }
-
-        if (Object.keys(jsonData).length) {
-          console.log('jsonData', jsonData)
-        } else {
-          console.log("can't parse json from file")
-        }
-      } else {
-        console.log('absent')
-      }
+    res.json({
+      success: true,
+      strStatus: "SUCCESS",
+      messages: {
+        status: 200,
+        messageText: status["SUCCESS"],
+      },
     })
   } catch (err) {
     console.log('err', err)
-  } finally {
-    fs.writeFile(dataFilePath, JSON.stringify({ "userId": userId }), (err) => {
-      if (err) {
-        res.json({ success: false, msg: 'Failed to save user id!' })
-      } else {
-        res.json({ success: true, msg: 'User id was saved!' })
-      }
-    })
-
-    //start sockets connection
-    withSocket(userId)
+    next(err)
   }
 })
+
 
 router.get("/", async (req, res, next) => {
   try {
