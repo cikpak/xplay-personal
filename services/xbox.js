@@ -46,8 +46,8 @@ const tryWakeUp = async (xboxId, callback) => {
     let success = false
     let xboxData = null
 
-    //start a cycle to generate ips, from .1 to .255
-    for (i = 130; i < 255 && !success; i++) {
+    //start a cycle to generate ips, from 1 to 255
+    for (i = 1; i < 255 && !success; i++) {
         try {
             //try to power on xbox for each ip
             await xboxOn(xboxId, `${baseIp}${i}`, 5, 50, (err, data) => {
@@ -118,8 +118,21 @@ const xboxOn = async (...arguments) => {
     }
 }
 
+getXboxData = (xboxIp, callback) => {
+    const sgClient = Smartglass()
+    sgClient.connect(xboxIp)
+        .then(() => {
+            callback(null, { xboxId: sgClient._console._liveid, xboxIp })
+        })
+        .catch(err => {
+            console.log(`err`, err)
+            callback('Failed to get xbox ID!', null)
+        })
+}
+
 module.exports = {
     xboxOn,
+    getXboxData,
     getXboxIp,
     tryWakeUp
 }

@@ -75,14 +75,12 @@ const sockets = (userId, clientSocket) => {
             }
 
             if (xboxIp && strErrors.indexOf(xboxIp) === -1) {
-
-                getXboxData(xboxIp, (err, xboxId) => {
+                getXboxData(xboxIp, (err, data) => {
                     if (err) {
                         console.log(`err`, err)
                         return cb({ success: false, msg: err, xboxId: null, xboxIp })
                     } else {
-                        console.log(`xboxIp: ${xboxIp} --- xboxId: ${xboxId}`)
-                        return cb({ success: true, msg: 'Success!', xboxId, xboxIp })
+                        return cb({ success: true, msg: 'Success!', ...data })
                     }
                 })
 
